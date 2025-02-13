@@ -39,5 +39,5 @@ def process(data_path):
         wf.write('\n'.join([f'{file},{label}' for file, label in val_files]))
 
 if __name__ =='__main__':
-    datasets_root = Path('../data/小麦病害训练集/')
+    datasets_root = Path('../data/wheat_disease/')
     process(datasets_root)

@@ -122,14 +122,14 @@ if __name__ == '__main__':
     datasets_root = Path('../data/traffic_sign/')
     data_root = Path('./data/traffic_sign_B/')
     # 加载数据
-    batch_size = 128
+    batch_size = 512
     trainDataset = wheatDiseaseDataset('./data/train.txt','./data/classes.txt')
-    train_iter = DataLoader(dataset=trainDataset,batch_size=batch_size,shuffle=True)
+    train_iter = DataLoader(dataset=trainDataset,batch_size=batch_size,shuffle=True,num_workers=4,pin_memory=True)
     testDataset = wheatDiseaseDataset('./data/test.txt','./data/classes.txt')
-    test_iter = DataLoader(dataset=testDataset,batch_size=batch_size,shuffle=True)
+    test_iter = DataLoader(dataset=testDataset,batch_size=batch_size,shuffle=True,num_workers=4,pin_memory=True)
     # 构建模型
     print('generate model...')
-    lr, num_epochs = 0.05, 1
+    lr, num_epochs = 0.05, 100
     net  = ResNet
     net.apply(init_weights)
     net.to(device)
