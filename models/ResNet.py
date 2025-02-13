@@ -12,7 +12,7 @@ import argparse
 from torch.nn import functional as F
 import time
 
-class Residual(nn.Module): #@save
+class Residual(nn.Module): 
     def __init__(self, input_channels, num_channels,use_1x1conv=False, strides=1):
         super().__init__()
         self.conv1 = nn.Conv2d(input_channels, num_channels,kernel_size=3, padding=1, stride=strides)

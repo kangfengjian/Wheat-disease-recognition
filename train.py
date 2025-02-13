@@ -26,7 +26,7 @@ class wheatDiseaseDataset(Dataset):
                 img = Image.open(pic)  # 打开图片
                 img = img.convert('RGB')  # 首先统一为RGB的形式，然后进行处理
                 img = transformer(img)  # 数据增强处理
-                img = transforms.Resize((96, 96))(img) # 统一大小
+                img = transforms.Resize((256, 256))(img) # 统一大小
                 img = transforms.ToTensor()(img) 
                 self.data.append([img,self.classes.index(class_name),]) # 原图
 
@@ -123,14 +123,14 @@ if __name__ == '__main__':
     datasets_root = Path('../data/traffic_sign/')
     data_root = Path('./data/traffic_sign_B/')
     # 加载数据
-    batch_size = 512
+    batch_size = 128
     trainDataset = wheatDiseaseDataset('./data/train.txt','./data/classes.txt')
     train_iter = DataLoader(dataset=trainDataset,batch_size=batch_size,shuffle=True,num_workers=4,pin_memory=True)
     testDataset = wheatDiseaseDataset('./data/test.txt','./data/classes.txt')
     test_iter = DataLoader(dataset=testDataset,batch_size=batch_size,shuffle=True,num_workers=4,pin_memory=True)
     # 构建模型
     print('generate model...')
-    lr, num_epochs = 0.05, 100
+    lr, num_epochs = 0.01, 100
     net  = ResNet
     net.apply(init_weights)
     net.to(device)
