@@ -22,18 +22,19 @@ class wheatDiseaseDataset(Dataset):
             self.classes = [cls.strip() for cls in rf.read().split('\n') if cls]
         with open(img_txt,'r',encoding='utf-8') as rf:
             for pic,class_name in [i.split(',') for i in rf.read().split('\n') if i]:
-                self.data.append([Path(pic),self.classes.index(class_name),lambda x:x]) # 原图
+                transformer = lambda x:x
+                img = Image.open(pic)  # 打开图片
+                img = img.convert('RGB')  # 首先统一为RGB的形式，然后进行处理
+                img = transformer(img)  # 数据增强处理
+                img = transforms.Resize((96, 96))(img) # 统一大小
+                img = transforms.ToTensor()(img) 
+                self.data.append([img,self.classes.index(class_name),]) # 原图
 
     def __len__(self):
         return len(self.data)
   
     def __getitem__(self, idx):  
-        pic_path,class_idx,transformer = self.data[idx]
-        img = Image.open(pic_path)  # 打开图片
-        img = img.convert('RGB')  # 首先统一为RGB的形式，然后进行处理
-        img = transformer(img)  # 数据增强处理
-        img = transforms.Resize((96, 96))(img) # 统一大小
-        img = transforms.ToTensor()(img) 
+        img, class_idx = self.data[idx]
         return img,class_idx
     
 # 检查GPU的可用性

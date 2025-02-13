@@ -1,6 +1,8 @@
 # Wheat-disease-recognition
 小麦病害识别
 
+
+
 # 赛题相关
 
 及时准确识别小麦病虫害对于精准施药、减灾保产至关重要。常见的小麦病虫害有6种：小麦条锈病（Rust）、小麦白粉病（Powdery Mildew）、小麦赤霉病（Wheat scab）、根冠腐烂（Crown and Root Rot）、小麦黑穗病（Wheat Loose Smut）与小麦纹枯病（wheat sharp eyespot）。健康小麦及染病小麦的典型特征参见以下图例。本赛题旨在研发 “看图识麦” 的模型， 帮助农户从生长期小麦的图片即刻识别病虫害风险。
@@ -60,4 +62,6 @@ classes.txt文件夹里是类别名，每个类别名占一行
 - 处理命令行
 
 ###### 定义数据类
+
+写好了训练文件，然后在GPU服务器上训练
 
