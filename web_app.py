@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 import base64
-import cv2
+#import cv2
 import numpy as np
 from models.ResNet import ResNet
 import torch
@@ -34,7 +34,7 @@ class GenericClassifier:
         try:
             self.model = ResNet
             # weight = 'weights/{}best_weights.pth'.format()
-            self.model.load_state_dict(torch.load(weight,weights_only=True))
+            self.model.load_state_dict(torch.load(weight,weights_only=True,map_location=self.device))
             self.model.to(self.device)
             self.model.eval()
             self.status = "ready"
@@ -132,7 +132,7 @@ class ClassifierSingleton:
     @staticmethod
     def get_instance():
         if ClassifierSingleton._instance is None:
-            ClassifierSingleton._instance = GenericClassifier('weights/20250212_164237_best_weights.pth')
+            ClassifierSingleton._instance = GenericClassifier('weights/20250214_110830_best_weights.pth')
         return ClassifierSingleton._instance
 
 # API路由：版本信息
@@ -191,9 +191,11 @@ def picture_analysis():
     return jsonify({
         "code": "0",
         "msg": "success",
-        "data": {
-            "class": int(result),
-            "prob": float(prob)
+        "data":{
+            'expand':{
+                "class": int(result),
+                "prob": float(prob)
+                }
         }
     })
     # try:
