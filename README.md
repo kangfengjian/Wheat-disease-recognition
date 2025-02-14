@@ -175,3 +175,106 @@ two stage方法下，目标检测网络输出的是box+cls(一级分类）,后�
   }
 }
 ```
+
+# 打包
+
+环境中已有docker，那么可以直接用
+
+先拉取镜像，再运行容器
+
+docker pull reg.sdses.com/nvidia/cuda:11.3.1-cudnn8-devel-ubuntu18.04
+
+人家内部镜像我们不能用，然后可以自己搞一个，那么就选择pytorch的镜像
+
+[pytorch/pytorch - Docker Image](https://hub.docker.com/r/pytorch/pytorch)
+
+找镜像，tag形如：`1.10.0-cuda11.3-cudnn8-runtime`
+
+1.10.0 是pytorch的版本；
+
+cuda11.3 是cuda的版本，意味着镜像中已经安装了 CUDA 11.3 库
+
+cuDNN 是 NVIDIA 提供的用于加速深度学习计算的高性能库，PyTorch 使用 cuDNN 进行高效的卷积操作、激活函数计算等任务。
+
+runtime
+含义：这是镜像的类型，表示这是一个 运行时镜像。
+解释：runtime 表示该镜像包含了运行 PyTorch 所需的基本环境和依赖，但它并没有包括用于构建和开发的工具。例如，通常在运行时镜像中不会包含编译器和开发工具链。主要用于部署和运行已经构建好的模型。
+这种镜像适用于那些已经准备好进行推理或训练的生产环境，因为它包含运行深度学习模型所需的最小依赖。
+与之对应的是其他类型的镜像，比如：
+devel：开发环境镜像，包含更多用于构建、编译和开发的工具和依赖（如编译器、构建工具、调试工具等）。用于开发和调试代码。
+runtime 镜像没有这些开发工具，通常体积更小，适合生产环境使用。
+
+目前环境的 torch版本是2.6.0
+
+目前环境中是 CUDA Version: 12.0
+
+执行docker pull 拉取镜像
+
+docker pull pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
+
+然后运行容器，
+
+docker run -itd  -v /home/ubuntu/Wheat-disease-recognition:/workspace --name wheat_disease_recognizer pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
+
+> e00974dfabd1af8287a1dd22323b54f96aa62dd7e158e037be5e32b9a109c744
+
+docker exec -it e00 bash
+
+然后在容器中搭建环境
+
+首先是挂在了目录，train.py 这些文件都可以在/workspace里看到
+
+ pip install flask
+
+pip install scikit-learn
+
+没写端口映射，那就重新构建容器
+
+docker stop e00974dfab
+
+docker rm e00974dfab
+
+-p 8080:80
+
+知道咋运行了
+
+然后写Dockerfile
+
+在Dockerfile的目录下执行 docker build -t wheat_disease_recognizer:V0.1.0-20250213 .
+
+docker images查看已经打包好的镜像
+
+docker run -itd  -p 80:80 --gpus all --name wheat_disease_recognizer wheat_disease_recognizer:V0.1.0-20250213
+
+运行报错
+
+Traceback (most recent call last):
+  File "/workspace/web_app.py", line 5, in <module>
+    from models.ResNet import ResNet
+ModuleNotFoundError: No module named 'models'
+
+
+
+docker run -itd  -p 80:80 --name wheat_disease_recognizer --entrypoint /bin/bash wheat_disease_recognizer:V0.1.0-20250213
+
+
+
+###  保存镜像
+
+docker save -o ./wheat_disease_recognizer_v0.1.1.tar wheat_disease_recognizer:V0.1.1-20250214
+
+再次打包镜像
+
+docker build -t wheat_disease_recognizer:V0.1.1-20250214 .
+
+docker run -itd  -p 80:80 --gpus all --name wheat_disease_recognizer wheat_disease_recognizer:V0.1.1-20250214
+
+# 提交镜像
+
+docker login登录
+
+打标签
+
+docker tag 7d0f8fedb185 kangfengjian/wheat_disease_recognizer:V0.1.0-20250213
+
+docker push kangfengjian/wheat_disease_recognizer:V0.1.0-20250213
