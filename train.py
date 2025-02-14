@@ -120,9 +120,6 @@ if __name__ == '__main__':
     print('train on {}'.format(device))
     # 加载数据
     print('load data...')
-    datasets_root = Path('../data/traffic_sign/')
-    data_root = Path('./data/traffic_sign_B/')
-    # 加载数据
     batch_size = 128
     trainDataset = wheatDiseaseDataset('./data/train.txt','./data/classes.txt')
     train_iter = DataLoader(dataset=trainDataset,batch_size=batch_size,shuffle=True,num_workers=4,pin_memory=True)
@@ -144,6 +141,7 @@ if __name__ == '__main__':
     best_acc = 0
     # with open('log/log_{}_{}.log'.format(model_name,cross_index),'w',encoding='utf-8') as wf:
         # wf.write('')
+    model_name = datetime.now().strftime("%Y%m%d_%H%M%S")
     for epoch in range(num_epochs):
         # start_time = time.perf_counter()
         # out_str = '{}-cross_{}_epoch:{}/{}\t'.format(model_name,cross_index,epoch,num_epochs)
@@ -172,7 +170,7 @@ if __name__ == '__main__':
             weights_path = Path('./weights/')
             weights_path.mkdir(parents=True, exist_ok=True)
             if best_acc>0:
-                torch.save(net.state_dict(),weights_path/Path('{}_best_weights.pth'.format(datetime.now().strftime("%Y%m%d_%H%M%S"))))
+                torch.save(net.state_dict(),weights_path/Path('{}_best_weights.pth'.format(model_name)))
         # torch.save(net.state_dict(), weights_path/Path('{}_{}_last_weights.pth'.format(model_name,index)))
     #     animator.add(epoch+1,(None,None,test_acc))
     #     with open('log/log_{}_{}.log'.format(model_name,cross_index),'a',encoding='utf-8') as wf:

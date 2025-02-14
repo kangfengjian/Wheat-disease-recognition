@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from d2l import torch as d2l
+# from d2l import torch as d2l
 from pathlib import Path
 from torchvision import datasets, transforms  
 from sklearn.model_selection import train_test_split # pip install scikit-learn 
@@ -14,74 +14,90 @@ import time
 import mimetypes
 from models.ResNet import ResNet
 
-class TrafficSign(Dataset):  
-    def __init__(self, data_source, dataset_root):
-        if data_source.is_file(): # 判断输入是不是文件
-            if is_binary_file(data_source): # 如果是二进制文件，默认是输入一张图片
-                pass
-            else: # 如果不是二进制文件，默认是一个存储图片路径的文档
-                with open(data_source,'r',encoding='utf-8') as rf:
-                    self.data = [[i.split(',')[0],Path(i.split(',')[0]).name] for i in rf.read().split('\n') if i]
-                # print(self.data)
-        else: # 如果是一个文件夹，默认是存储图片的文件夹
-            pass
-        self.dataset_root = dataset_root
-  
-    def __len__(self):  
+# 数据加载
+class wheatDiseaseDataset(Dataset):  
+    def __init__(self, imgs):  
+        # self.transforms = [lambda x:x,]
+        self.data = list()
+        if not(isinstance(imgs,list) or isinstance(imgs,tuple)):  # 将非列表和元组元素转变为列表
+            imgs = [imgs]
+        if isinstance(imgs[0],str) or isinstance(imgs[0],Path): # 如果列表中的元素是字符串，说明是图片的路径
+            pics = list()  # 这个列表里存储图片的路径，文件路径
+            for pic in imgs:
+                pic_path = Path(pic)
+                if pic_path.is_file():
+                    pics.append(pic_path)
+                elif pic_path.is_dir():
+                    pics.extend([i for i in pic_path.iterdir() if is_binary_file(i)])
+            for pic in pics:
+                # transformer = lambda x:x
+                img = Image.open(pic)  # 打开图片
+                img = img.convert('RGB')  # 首先统一为RGB的形式，然后进行处理
+                # img = transformer(img)  # 数据增强处理
+                img = transforms.Resize((256, 256))(img) # 统一大小
+                img = transforms.ToTensor()(img) 
+                self.data.append([img,str(pic)]) # 原图
+
+    def __len__(self):
         return len(self.data)
   
     def __getitem__(self, idx):  
-        sample = self.data[idx]
-        img = Image.open(self.dataset_root/Path(sample[0]))
-        # 图片处理
-        img = img.convert('RGB')  
-        # img = img.convert('L')
-        resize = transforms.Resize((96, 96))  
-        img = resize(img)  
-        to_tensor = transforms.ToTensor()
-        img = to_tensor(img) 
-        y = sample[1]
-        return img,y
-
-
+        img,pic = self.data[idx]
+        return img,pic
+    
 
 def is_binary_file(file_path):
     mime_type, encoding = mimetypes.guess_type(file_path)
     return mime_type is None or mime_type.startswith('application/') or 'image' in mime_type
 
 
-if __name__ == '__main__':
-    device = d2l.try_gpu()
-    print('infer on {}'.format(device))
-    # 首先加载数据，数据应该是csv的，存储样本和标签的信息,也可以是一个文件夹
-    data_source = Path('./data/traffic_sign/test_B.csv')
-    datasets_root = Path('../data/traffic_sign/')
-    data_root = Path('./data/traffic_sign/')
-    batch_size = 512
-    dataset = TrafficSign(data_source, datasets_root)
-    test_loader = DataLoader(dataset=dataset,batch_size=batch_size)
-    # 确定是交叉验证的哪一个
-    parser = argparse.ArgumentParser(description='')  
-    parser.add_argument('--index', type=str, help='交叉验证的划分号',default=0)
-    cross_index = int(parser.parse_args().index)
-    # 加载模型和训练好的参数\
-    model_name = 'ResNet-B-0001'
+# 检查GPU的可用性
+def try_gpu(i=0):
+    """如果存在 GPU，则返回第 i 个 GPU，否则返回 CPU"""
+    if torch.cuda.device_count() > i:
+        return torch.device(f'cuda:{i}')
+    return torch.device('cpu')
+
+
+def infer(inferdata_root,weight):
+    # 检查设备
+    device = try_gpu()
+    # print('infer on {}'.format(device))
+    # 加载数据
+    # print('load data...')
+    # inferdata_root = Path('../data/wheat_disease/')
+    batch_size = 128
+    inferDataset = wheatDiseaseDataset(inferdata_root)
+    infer_iter = DataLoader(dataset=inferDataset,batch_size=batch_size,shuffle=False,num_workers=4,pin_memory=True)
+    # 加载模型和训练好的参数
+    # print('generate model...')
     net  = ResNet
-    weights = 'weights/{}_{}_best_weights.pth'.format(model_name,cross_index)
-    net.load_state_dict(torch.load(weights,weights_only=True))
+    # weight = 'weights/{}best_weights.pth'.format()
+    net.load_state_dict(torch.load(weight,weights_only=True))
     net.to(device)
-    net.eval()
     # 开始推理
+    # print('start infer...')
+    net.eval()
     result = list()
-    sample_num, right_num = 0,0
-    for data, name in test_loader:
-        data = data.to(device)
-        output=net(data)
-        predicted_class = torch.argmax(output,dim=1)
-        for i,j in zip(name,predicted_class.tolist()):
-            result.append([str(i),str(j)])
-    with open('result/{}_cross_{}_{}.csv'.format(model_name,cross_index,datetime.now().strftime("%Y-%m-%d_%H-%M-%S")),'w',encoding='utf-8') as wf:
-        wf.write('ImageID,label\n')
-        for i in result:
-            wf.write(','.join(i)+'\n')
-    print('{} infer over'.format(cross_index))
+    for X,img_name in infer_iter:
+        X = X.to(device)
+        y_hat=net(X)
+        result+=zip(img_name,torch.argmax(torch.softmax(y_hat, dim=1), dim=1).tolist())
+    with open('./data/classes.txt','r',encoding='utf-8') as rf:
+        classes = [cls.strip() for cls in rf.read().split('\n') if cls]
+    result = [[img,classes[label]] for img,label in result]
+    return result
+
+
+if __name__ == '__main__':
+    inferdata_root = dict()
+    # with open('./data/train.txt','r',encoding='utf-8') as rf:
+    #     for line in rf:
+    #         inferdata_root[line.split(',')[0]] = line.split(',')[1]
+    with open('./data/test.txt','r',encoding='utf-8') as rf:
+        for line in rf:
+            inferdata_root[line.split(',')[0]] = line.split(',')[1]
+    weight = 'weights/20250212_164237_best_weights.pth'
+    result = infer(list(inferdata_root.keys()),weight)
+    acc = sum(1 for img,label in result if label==inferdata_root[img.replace('\\','/')])/len(result)
+    print(acc)
